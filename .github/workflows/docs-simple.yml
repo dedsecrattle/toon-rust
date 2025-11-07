@@ -26,6 +26,22 @@ jobs:
       - name: Generate Documentation
         run: cargo doc --no-deps --all-features
 
+      - name: Create index.html
+        run: |
+          printf '%s\n' \
+            '<!DOCTYPE html>' \
+            '<html lang="en">' \
+            '<head>' \
+            '    <meta charset="utf-8">' \
+            '    <title>toon-rust Documentation</title>' \
+            '    <meta http-equiv="refresh" content="0; url=toon_rust/index.html">' \
+            '    <script>window.location.replace("toon_rust/index.html");</script>' \
+            '</head>' \
+            '<body>' \
+            '    <p>Redirecting to <a href="toon_rust/index.html">documentation</a>...</p>' \
+            '</body>' \
+            '</html>' > target/doc/index.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
