@@ -1,0 +1,176 @@
+# toon-rust
+
+Token-Oriented Object Notation (TOON) - Rust implementation
+
+TOON is a compact, human-readable format designed to reduce token usage in Large Language Model (LLM) prompts by 30–60% compared to JSON.
+
+## Features
+
+- ✅ Full TOON specification v1.4 support
+- ✅ Standalone API (works with `serde_json::Value`)
+- ✅ Serde-compatible API (works with any `Serialize`/`Deserialize` types)
+- ✅ Rust-optimized implementation with zero-copy parsing where possible
+- ✅ Customizable delimiters (comma, tab, pipe)
+- ✅ Length markers and indentation options
+- ✅ Strict validation mode
+
+## Installation
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+toon-rust = "0.1.0"
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = "1.0"
+```
+
+## Usage
+
+### Standalone API
+
+```rust
+use toon_rust::{encode, decode};
+use serde_json::json;
+
+let data = json!({
+    "items": [
+        {"sku": "A1", "qty": 2, "price": 9.99},
+        {"sku": "B2", "qty": 1, "price": 14.5}
+    ]
+});
+
+// Encode to TOON
+let toon = encode(&data, None).unwrap();
+println!("{}", toon);
+// Output:
+// items[2]{sku,qty,price}:
+//   A1,2,9.99
+//   B2,1,14.5
+
+// Decode from TOON
+let decoded = decode(&toon, None).unwrap();
+assert_eq!(data, decoded);
+```
+
+### Serde API
+
+```rust
+use serde::{Serialize, Deserialize};
+use toon_rust::{to_string, from_str};
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+struct Product {
+    sku: String,
+    qty: u32,
+    price: f64,
+}
+
+let products = vec![
+    Product { sku: "A1".to_string(), qty: 2, price: 9.99 },
+    Product { sku: "B2".to_string(), qty: 1, price: 14.5 },
+];
+
+// Serialize to TOON
+let toon = to_string(&products).unwrap();
+
+// Deserialize from TOON
+let decoded: Vec<Product> = from_str(&toon).unwrap();
+assert_eq!(products, decoded);
+```
+
+### Custom Options
+
+```rust
+use toon_rust::{encode, EncodeOptions, DecodeOptions};
+use toon_rust::options::Delimiter;
+use serde_json::json;
+
+let data = json!({
+    "tags": ["reading", "gaming", "coding"]
+});
+
+// Encode with custom options
+let options = EncodeOptions::new()
+    .delimiter(Delimiter::Pipe)
+    .length_marker('#')
+    .indent(4);
+
+let toon = encode(&data, Some(&options)).unwrap();
+// Output: tags[#3|]: reading|gaming|coding
+
+// Decode with custom options
+let decode_options = DecodeOptions::new()
+    .indent(4)
+    .strict(false);
+
+let decoded = decode(&toon, Some(&decode_options)).unwrap();
+```
+
+## TOON Format
+
+TOON uses minimal syntax to reduce token count:
+
+- **Objects**: Indentation-based structure (like YAML)
+- **Primitive arrays**: Inline format: `tags[3]: reading,gaming,coding`
+- **Tabular arrays**: Uniform objects with header: `items[2]{sku,qty,price}:`
+- **List arrays**: Non-uniform arrays: `items[3]:\n  - 1\n  - a: 1\n  - x`
+
+### Example
+
+```toon
+items[2]{sku,qty,price}:
+  A1,2,9.99
+  B2,1,14.5
+user:
+  id: 1
+  name: Alice
+tags[3]: reading,gaming,coding
+```
+
+## API Reference
+
+### Standalone API
+
+- `encode(value: &Value, options: Option<&EncodeOptions>) -> Result<String, Error>`
+- `decode(input: &str, options: Option<&DecodeOptions>) -> Result<Value, Error>`
+
+### Serde API (requires `serde` feature)
+
+- `to_string<T: Serialize>(value: &T) -> Result<String, Error>`
+- `from_str<T: DeserializeOwned>(s: &str) -> Result<T, Error>`
+- `to_writer<T: Serialize, W: Write>(value: &T, writer: &mut W) -> Result<(), Error>`
+- `from_reader<T: DeserializeOwned, R: Read>(reader: &mut R) -> Result<T, Error>`
+
+### Options
+
+**EncodeOptions:**
+- `delimiter(delimiter: Delimiter)` - Set delimiter (Comma, Tab, or Pipe)
+- `length_marker(marker: char)` - Set length marker (e.g., `'#'` for `[#3]`)
+- `indent(indent: usize)` - Set indentation level (default: 2)
+
+**DecodeOptions:**
+- `indent(indent: usize)` - Expected indentation level (default: 2)
+- `strict(strict: bool)` - Enable strict validation (default: true)
+
+## Performance
+
+The implementation is optimized for Rust:
+
+- Zero-copy parsing using string slices where possible
+- Efficient memory management with pre-allocated buffers
+- Minimal allocations during encoding/decoding
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.
+
+## References
+
+- [TOON Specification](https://github.com/toon-format/toon)
+- [TOON Format Website](https://toonformat.dev)
+

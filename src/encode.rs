@@ -1,0 +1,333 @@
+//! Encoding TOON format from JSON values
+
+use crate::error::Error;
+use crate::options::EncodeOptions;
+use serde_json::Value;
+
+/// Encode a JSON value to TOON format
+///
+/// # Arguments
+///
+/// * `value` - The JSON value to encode
+/// * `options` - Optional encoding options
+///
+/// # Returns
+///
+/// A `Result` containing the TOON-formatted string or an error
+pub fn encode(value: &Value, options: Option<&EncodeOptions>) -> Result<String, Error> {
+    let default_opts = EncodeOptions::default();
+    let opts = options.unwrap_or(&default_opts);
+    let mut output = String::new();
+    encode_value(value, &mut output, 0, opts)?;
+    Ok(output)
+}
+
+fn encode_value(
+    value: &Value,
+    output: &mut String,
+    indent_level: usize,
+    options: &EncodeOptions,
+) -> Result<(), Error> {
+    match value {
+        Value::Null => {
+            // Null values are typically omitted or represented as empty
+        }
+        Value::Bool(b) => {
+            output.push_str(if *b { "true" } else { "false" });
+        }
+        Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                output.push_str(&i.to_string());
+            } else if let Some(f) = n.as_f64() {
+                output.push_str(&f.to_string());
+            } else {
+                return Err(Error::Serialization("Invalid number".to_string()));
+            }
+        }
+        Value::String(s) => {
+            encode_string(s, output, options.get_delimiter());
+        }
+        Value::Array(arr) => {
+            encode_array(arr, output, indent_level, options)?;
+        }
+        Value::Object(obj) => {
+            encode_object(obj, output, indent_level, options)?;
+        }
+    }
+    Ok(())
+}
+
+fn encode_string(s: &str, output: &mut String, delimiter: char) {
+    // Check if we need to quote the string
+    let needs_quoting = s.contains(delimiter)
+        || s.contains(' ')
+        || s.contains('\n')
+        || s.contains('\t')
+        || s == "true"
+        || s == "false"
+        || s == "null"
+        || s.parse::<f64>().is_ok();
+
+    if needs_quoting {
+        output.push('"');
+        for ch in s.chars() {
+            match ch {
+                '"' => output.push_str("\\\""),
+                '\\' => output.push_str("\\\\"),
+                '\n' => output.push_str("\\n"),
+                '\r' => output.push_str("\\r"),
+                '\t' => output.push_str("\\t"),
+                _ => output.push(ch),
+            }
+        }
+        output.push('"');
+    } else {
+        output.push_str(s);
+    }
+}
+
+fn encode_array(
+    arr: &[Value],
+    output: &mut String,
+    indent_level: usize,
+    options: &EncodeOptions,
+) -> Result<(), Error> {
+    if arr.is_empty() {
+        output.push_str("[0]:");
+        return Ok(());
+    }
+
+    // Check if array contains uniform objects (tabular format)
+    if let Some(keys) = check_uniform_objects(arr) {
+        encode_tabular_array(arr, keys, output, indent_level, options)?;
+        return Ok(());
+    }
+
+    // Check if all elements are primitives (inline format)
+    if arr.iter().all(|v| is_primitive(v)) {
+        encode_inline_array(arr, output, options)?;
+        return Ok(());
+    }
+
+    // Otherwise, use list format
+    encode_list_array(arr, output, indent_level, options)?;
+    Ok(())
+}
+
+fn is_primitive(value: &Value) -> bool {
+    matches!(
+        value,
+        Value::Null | Value::Bool(_) | Value::Number(_) | Value::String(_)
+    )
+}
+
+fn check_uniform_objects(arr: &[Value]) -> Option<Vec<String>> {
+    if arr.is_empty() {
+        return None;
+    }
+
+    // Get keys from first object
+    let first = arr[0].as_object()?;
+    let mut keys: Vec<String> = first.keys().cloned().collect();
+    if keys.is_empty() {
+        return None;
+    }
+    keys.sort();
+
+    // Check if all objects have the same keys
+    for item in arr.iter().skip(1) {
+        let obj = item.as_object()?;
+        let mut item_keys: Vec<String> = obj.keys().cloned().collect();
+        item_keys.sort();
+        if item_keys != keys {
+            return None;
+        }
+    }
+
+    Some(keys)
+}
+
+fn encode_tabular_array(
+    arr: &[Value],
+    keys: Vec<String>,
+    output: &mut String,
+    indent_level: usize,
+    options: &EncodeOptions,
+) -> Result<(), Error> {
+    let indent = options.get_indent();
+    let indent_str = " ".repeat(indent_level * indent);
+    let delimiter = options.get_delimiter();
+
+    // Write header: items[N]{key1,key2,...}:
+    let length_marker = options
+        .length_marker
+        .map(|m| format!("{}", m))
+        .unwrap_or_default();
+    output.push_str(&format!("[{}{}]", length_marker, arr.len()));
+    output.push('{');
+    output.push_str(&keys.join(&delimiter.to_string()));
+    output.push_str("}:\n");
+
+    // Write rows
+    for item in arr {
+        output.push_str(&indent_str);
+        output.push_str(&" ".repeat(indent));
+        let obj = item.as_object().ok_or_else(|| {
+            Error::Serialization("Expected object in tabular array".to_string())
+        })?;
+
+        let mut first = true;
+        for key in &keys {
+            if !first {
+                output.push(delimiter);
+            }
+            let value = obj.get(key).ok_or_else(|| {
+                Error::Serialization(format!("Missing key: {}", key))
+            })?;
+            encode_primitive_value(value, output, delimiter)?;
+            first = false;
+        }
+        output.push('\n');
+    }
+
+    Ok(())
+}
+
+fn encode_primitive_value(
+    value: &Value,
+    output: &mut String,
+    delimiter: char,
+) -> Result<(), Error> {
+    match value {
+        Value::Null => {}
+        Value::Bool(b) => {
+            output.push_str(if *b { "true" } else { "false" });
+        }
+        Value::Number(n) => {
+            if let Some(i) = n.as_i64() {
+                output.push_str(&i.to_string());
+            } else if let Some(f) = n.as_f64() {
+                output.push_str(&f.to_string());
+            } else {
+                return Err(Error::Serialization("Invalid number".to_string()));
+            }
+        }
+        Value::String(s) => {
+            encode_string(s, output, delimiter);
+        }
+        _ => {
+            return Err(Error::Serialization(
+                "Non-primitive value in tabular array".to_string(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn encode_inline_array(
+    arr: &[Value],
+    output: &mut String,
+    options: &EncodeOptions,
+) -> Result<(), Error> {
+    let length_marker = options
+        .length_marker
+        .map(|m| format!("{}", m))
+        .unwrap_or_default();
+    output.push_str(&format!("[{}{}]:", length_marker, arr.len()));
+
+    let delimiter = options.get_delimiter();
+    let mut first = true;
+    for item in arr {
+        if !first {
+            output.push(delimiter);
+        }
+        match item {
+            Value::Null => {}
+            Value::Bool(b) => {
+                output.push_str(if *b { "true" } else { "false" });
+            }
+            Value::Number(n) => {
+                if let Some(i) = n.as_i64() {
+                    output.push_str(&i.to_string());
+                } else if let Some(f) = n.as_f64() {
+                    output.push_str(&f.to_string());
+                }
+            }
+            Value::String(s) => {
+                encode_string(s, output, delimiter);
+            }
+            _ => {
+                return Err(Error::Serialization(
+                    "Non-primitive in inline array".to_string(),
+                ));
+            }
+        }
+        first = false;
+    }
+
+    Ok(())
+}
+
+fn encode_list_array(
+    arr: &[Value],
+    output: &mut String,
+    indent_level: usize,
+    options: &EncodeOptions,
+) -> Result<(), Error> {
+    let indent = options.get_indent();
+    let indent_str = " ".repeat(indent_level * indent);
+    let length_marker = options
+        .length_marker
+        .map(|m| format!("{}", m))
+        .unwrap_or_default();
+
+    output.push_str(&format!("[{}{}]:\n", length_marker, arr.len()));
+
+    for item in arr {
+        output.push_str(&indent_str);
+        output.push_str(&" ".repeat(indent));
+        output.push_str("- ");
+        encode_value(item, output, indent_level + 1, options)?;
+        output.push('\n');
+    }
+
+    Ok(())
+}
+
+fn encode_object(
+    obj: &serde_json::Map<String, Value>,
+    output: &mut String,
+    indent_level: usize,
+    options: &EncodeOptions,
+) -> Result<(), Error> {
+    if obj.is_empty() {
+        return Ok(());
+    }
+
+    let indent = options.get_indent();
+    let indent_str = " ".repeat(indent_level * indent);
+
+    let mut first = true;
+    for (key, value) in obj {
+        if !first {
+            output.push('\n');
+        }
+        output.push_str(&indent_str);
+        output.push_str(key);
+        output.push_str(": ");
+
+        match value {
+            Value::Object(_) | Value::Array(_) => {
+                output.push('\n');
+                encode_value(value, output, indent_level + 1, options)?;
+            }
+            _ => {
+                encode_value(value, output, indent_level, options)?;
+            }
+        }
+        first = false;
+    }
+
+    Ok(())
+}
+

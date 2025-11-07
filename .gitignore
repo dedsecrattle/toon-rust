@@ -1,0 +1,19 @@
+# Rust
+/target
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keep Cargo.lock for applications, but we'll add it for libraries too
+# Actually, for libraries published to crates.io, Cargo.lock should be in .gitignore
