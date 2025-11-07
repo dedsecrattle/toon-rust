@@ -1,6 +1,5 @@
 //! Tests for TOON decoding
 
-use serde_json::json;
 use toon_rust::{decode, DecodeOptions};
 
 #[test]
