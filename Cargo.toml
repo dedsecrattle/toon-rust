@@ -8,7 +8,7 @@ license = "MIT"
 repository = "https://github.com/dedsecrattle/toon-rust"
 documentation = "https://docs.rs/toon-rust"
 homepage = "https://github.com/dedsecrattle/toon-rust"
-keywords = ["toon", "serialization", "llm", "token", "json", "format"]
+keywords = ["toon", "serialization", "llm", "token"]
 categories = ["encoding", "parser-implementations"]
 readme = "README.md"
 
