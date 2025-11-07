@@ -190,6 +190,10 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
 
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for planned features and future improvements.
+
 ## References
 
 - [TOON Specification](https://github.com/toon-format/toon)
