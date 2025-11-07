@@ -1,8 +1,15 @@
 # toon-rust
 
+[![CI](https://github.com/dedsecrattle/toon-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/dedsecrattle/toon-rust/actions/workflows/ci.yml)
+[![Documentation](https://github.com/dedsecrattle/toon-rust/actions/workflows/docs-simple.yml/badge.svg)](https://dedsecrattle.github.io/toon-rust/)
+[![crates.io](https://img.shields.io/crates/v/toon-rust.svg)](https://crates.io/crates/toon-rust)
+[![docs.rs](https://docs.rs/toon-rust/badge.svg)](https://docs.rs/toon-rust)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
+
 Token-Oriented Object Notation (TOON) - Rust implementation
 
-TOON is a compact, human-readable format designed to reduce token usage in Large Language Model (LLM) prompts by 30–60% compared to JSON.
+> **TOON** is a compact, human-readable format designed to reduce token usage in Large Language Model (LLM) prompts by **30–60%** compared to JSON.
 
 ## Features
 
@@ -163,11 +170,25 @@ The implementation is optimized for Rust:
 
 ## License
 
-MIT License - see LICENSE file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Security
+
+For security vulnerabilities, please email **itsprabxxx@gmail.com** instead of opening a public issue. See [SECURITY.md](SECURITY.md) for details.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a list of changes and version history.
 
 ## Contributing
 
-Contributions are welcome! Please open an issue or submit a pull request.
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+- 🐛 Found a bug? [Open an issue](https://github.com/dedsecrattle/toon-rust/issues/new?template=bug_report.md)
+- 💡 Have an idea? [Suggest a feature](https://github.com/dedsecrattle/toon-rust/issues/new?template=feature_request.md)
+- 📖 Want to improve docs? PRs welcome!
+
+Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
 
 ## References
 

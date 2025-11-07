@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/dedsecrattle/toon-rust/discussions
+    about: Ask questions or discuss ideas
+  - name: Security Issue
+    url: https://github.com/dedsecrattle/toon-rust/security/advisories/new
+    about: Report a security vulnerability
+
