@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 jobs:
   test:
@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-          
+
       - name: Cache Cargo dependencies
         uses: actions/cache@v3
         with:
@@ -26,16 +26,15 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          
+
       - name: Check formatting
         run: cargo fmt -- --check
-        
+
       - name: Run clippy
         run: cargo clippy -- -D warnings
-        
+
       - name: Run tests
         run: cargo test --verbose
-        
+
       - name: Build
         run: cargo build --release
-

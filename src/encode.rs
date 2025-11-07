@@ -99,7 +99,16 @@ fn encode_array(
 
     // Check if array contains uniform objects (tabular format)
     if let Some(keys) = check_uniform_objects(arr) {
-        encode_tabular_array(arr, keys, output, indent_level, options)?;
+        // For root-level arrays, include the header
+        let length_marker = options
+            .length_marker
+            .map(|m| format!("{}", m))
+            .unwrap_or_default();
+        output.push_str(&format!("[{}{}]", length_marker, arr.len()));
+        output.push('{');
+        output.push_str(&keys.join(&options.get_delimiter().to_string()));
+        output.push_str("}:\n");
+        encode_tabular_array_rows(arr, keys, output, indent_level, options)?;
         return Ok(());
     }
 
@@ -126,20 +135,19 @@ fn check_uniform_objects(arr: &[Value]) -> Option<Vec<String>> {
         return None;
     }
 
-    // Get keys from first object
+    // Get keys from first object (preserve order)
     let first = arr[0].as_object()?;
-    let mut keys: Vec<String> = first.keys().cloned().collect();
+    let keys: Vec<String> = first.keys().cloned().collect();
     if keys.is_empty() {
         return None;
     }
-    keys.sort();
 
-    // Check if all objects have the same keys
+    // Check if all objects have the same keys (order doesn't matter for this check)
     for item in arr.iter().skip(1) {
         let obj = item.as_object()?;
-        let mut item_keys: Vec<String> = obj.keys().cloned().collect();
-        item_keys.sort();
-        if item_keys != keys {
+        let item_keys: std::collections::HashSet<String> = obj.keys().cloned().collect();
+        let first_keys: std::collections::HashSet<String> = keys.iter().cloned().collect();
+        if item_keys != first_keys {
             return None;
         }
     }
@@ -147,7 +155,7 @@ fn check_uniform_objects(arr: &[Value]) -> Option<Vec<String>> {
     Some(keys)
 }
 
-fn encode_tabular_array(
+fn encode_tabular_array_rows(
     arr: &[Value],
     keys: Vec<String>,
     output: &mut String,
@@ -158,17 +166,7 @@ fn encode_tabular_array(
     let indent_str = " ".repeat(indent_level * indent);
     let delimiter = options.get_delimiter();
 
-    // Write header: items[N]{key1,key2,...}:
-    let length_marker = options
-        .length_marker
-        .map(|m| format!("{}", m))
-        .unwrap_or_default();
-    output.push_str(&format!("[{}{}]", length_marker, arr.len()));
-    output.push('{');
-    output.push_str(&keys.join(&delimiter.to_string()));
-    output.push_str("}:\n");
-
-    // Write rows
+    // Write rows (header already written by caller)
     for item in arr {
         output.push_str(&indent_str);
         output.push_str(&" ".repeat(indent));
@@ -276,18 +274,29 @@ fn encode_list_array(
 ) -> Result<(), Error> {
     let indent = options.get_indent();
     let indent_str = " ".repeat(indent_level * indent);
-    let length_marker = options
-        .length_marker
-        .map(|m| format!("{}", m))
-        .unwrap_or_default();
-
-    output.push_str(&format!("[{}{}]:\n", length_marker, arr.len()));
 
     for item in arr {
         output.push_str(&indent_str);
         output.push_str(&" ".repeat(indent));
         output.push_str("- ");
-        encode_value(item, output, indent_level + 1, options)?;
+        // For objects in list arrays, encode them inline as key: value
+        match item {
+            Value::Object(obj) => {
+                let mut first = true;
+                for (key, val) in obj {
+                    if !first {
+                        output.push(' ');
+                    }
+                    output.push_str(key);
+                    output.push_str(": ");
+                    encode_primitive_value(val, output, options.get_delimiter())?;
+                    first = false;
+                }
+            }
+            _ => {
+                encode_value(item, output, indent_level + 1, options)?;
+            }
+        }
         output.push('\n');
     }
 
@@ -314,14 +323,58 @@ fn encode_object(
         }
         output.push_str(&indent_str);
         output.push_str(key);
-        output.push_str(": ");
-
+        
         match value {
-            Value::Object(_) | Value::Array(_) => {
+            Value::Array(arr) => {
+                // For arrays, check the format and encode appropriately
+                if arr.is_empty() {
+                    output.push_str("[0]:");
+                } else if let Some(keys) = check_uniform_objects(arr) {
+                    // Tabular array - output on same line: key[N]{...}:
+                    let length_marker = options
+                        .length_marker
+                        .map(|m| format!("{}", m))
+                        .unwrap_or_default();
+                    output.push_str(&format!("[{}{}]", length_marker, arr.len()));
+                    output.push('{');
+                    output.push_str(&keys.join(&options.get_delimiter().to_string()));
+                    output.push_str("}:\n");
+                    // Now output the rows
+                    encode_tabular_array_rows(arr, keys, output, indent_level, options)?;
+                } else if arr.iter().all(|v| is_primitive(v)) {
+                    // Inline array - output on same line: key[N]: value1,value2
+                    let length_marker = options
+                        .length_marker
+                        .map(|m| format!("{}", m))
+                        .unwrap_or_default();
+                    output.push_str(&format!("[{}{}]:", length_marker, arr.len()));
+                    let delimiter = options.get_delimiter();
+                    let mut first = true;
+                    for item in arr {
+                        if !first {
+                            output.push(delimiter);
+                        }
+                        encode_primitive_value(item, output, delimiter)?;
+                        first = false;
+                    }
+                } else {
+                    // List array - output on same line: key[N]:
+                    let length_marker = options
+                        .length_marker
+                        .map(|m| format!("{}", m))
+                        .unwrap_or_default();
+                    output.push_str(&format!("[{}{}]:", length_marker, arr.len()));
+                    output.push('\n');
+                    encode_list_array(arr, output, indent_level, options)?;
+                }
+            }
+            Value::Object(_) => {
+                output.push_str(": ");
                 output.push('\n');
                 encode_value(value, output, indent_level + 1, options)?;
             }
             _ => {
+                output.push_str(": ");
                 encode_value(value, output, indent_level, options)?;
             }
         }

@@ -56,15 +56,23 @@ impl<'a> Parser<'a> {
         let initial_indent = self.count_indent(indent);
 
         loop {
-            self.skip_whitespace();
-            if self.pos >= self.input.len() {
-                break;
-            }
-
-            // Check if we've moved to a different indentation level
+            // Count indentation first (before skipping whitespace)
             let line_indent = self.count_indent(indent);
             if line_indent < initial_indent {
                 // We've gone back to a lower indentation level
+                break;
+            }
+            
+            // Now skip the indentation whitespace
+            for _ in 0..(line_indent * indent) {
+                if self.peek_char() == Some(' ') {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
+            
+            if self.pos >= self.input.len() {
                 break;
             }
             if line_indent == 0 && !map.is_empty() && initial_indent == 0 {
@@ -119,7 +127,11 @@ impl<'a> Parser<'a> {
                         self.parse_array_value()?
                     } else {
                         // Parse nested object
-                        self.parse_object()?
+                        let nested_obj = self.parse_object()?;
+                        // After parsing nested object, check if we should continue
+                        // The recursive parse_object() will have consumed all nested content
+                        // and positioned us at the end or at a lower indentation level
+                        nested_obj
                     }
                 } else {
                     // Same or less indent means we're done with this value
@@ -138,6 +150,27 @@ impl<'a> Parser<'a> {
             };
 
             map.insert(key, value);
+            
+            // After inserting a nested object, check if we should continue
+            // If we're at the end or at a lower indentation level, break
+            if self.pos >= self.input.len() {
+                break;
+            }
+            
+            // Check indentation for next iteration
+            let next_line_indent = self.count_indent(indent);
+            if next_line_indent < initial_indent {
+                break;
+            }
+            if next_line_indent == 0 && initial_indent == 0 && !map.is_empty() {
+                // Check if there's actually a key to parse
+                let saved_pos = self.pos;
+                let key_result = self.parse_key();
+                self.pos = saved_pos;
+                if key_result.is_err() {
+                    break;
+                }
+            }
         }
 
         Ok(Value::Object(map))
@@ -212,30 +245,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_value_indented(
-        &mut self,
-        expected_indent: usize,
-        indent_size: usize,
-    ) -> Result<Value, Error> {
-        let current_indent = self.count_indent(indent_size);
-        if current_indent < expected_indent {
-            return Err(Error::parse(
-                self.pos,
-                format!(
-                    "Expected indentation level {}, found {}",
-                    expected_indent, current_indent
-                ),
-            ));
-        }
-
-        // Check for array header
-        if self.peek_char() == Some('[') {
-            self.parse_array_value()
-        } else {
-            // Parse nested object - it will handle its own indentation
-            self.parse_object()
-        }
-    }
 
     fn parse_array_value(&mut self) -> Result<Value, Error> {
         if self.peek_char() != Some('[') {
@@ -304,17 +313,35 @@ impl<'a> Parser<'a> {
             return Err(Error::parse(self.pos, "Expected ':'"));
         }
         self.advance(); // consume ':'
-        self.skip_to_next_line();
+        // Skip to next line (consume newline if present)
+        if self.peek_char() == Some('\n') {
+            self.advance();
+        }
 
         // Parse rows
         let mut items = Vec::new();
         let indent = self.options.get_indent();
+        // Count base indentation of first row
+        let base_indent = self.count_indent(indent);
 
         for _ in 0..expected_length {
-            self.skip_whitespace();
+            if self.pos >= self.input.len() {
+                break;
+            }
+            
+            // Count indentation of current line
             let line_indent = self.count_indent(indent);
-            if line_indent == 0 && !items.is_empty() {
-                break; // Back at root level
+            if line_indent < base_indent {
+                break; // Back at lower indentation level
+            }
+            
+            // Skip the indentation whitespace
+            for _ in 0..(line_indent * indent) {
+                if self.peek_char() == Some(' ') {
+                    self.advance();
+                } else {
+                    break;
+                }
             }
 
             let mut obj = Map::new();
@@ -342,7 +369,10 @@ impl<'a> Parser<'a> {
             }
 
             items.push(Value::Object(obj));
-            self.skip_to_next_line();
+            // Skip to next line
+            if self.pos < self.input.len() && self.peek_char() == Some('\n') {
+                self.advance();
+            }
         }
 
         if self.options.get_strict() && items.len() != expected_length {
@@ -384,22 +414,76 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_list_array(&mut self, expected_length: usize) -> Result<Value, Error> {
-        self.skip_to_next_line();
+        // Skip to next line if we're not already there
+        if self.peek_char() == Some('\n') {
+            self.advance();
+        }
         let indent = self.options.get_indent();
+        // Count base indentation of first item
+        let base_indent = self.count_indent(indent);
         let mut items = Vec::new();
 
         for _ in 0..expected_length {
-            self.skip_whitespace();
+            if self.pos >= self.input.len() {
+                break;
+            }
+            
+            // Count indentation of current line
             let line_indent = self.count_indent(indent);
+            if line_indent < base_indent {
+                break; // Back at lower indentation level
+            }
+            
+            // Skip the indentation whitespace
+            for _ in 0..(line_indent * indent) {
+                if self.peek_char() == Some(' ') {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
 
-            if self.peek_char() == Some('-') {
+            // Check if there's a '-' marker (optional in some formats)
+            let has_dash = self.peek_char() == Some('-');
+            if has_dash {
                 self.advance(); // consume '-'
                 self.skip_whitespace();
             }
 
-            let value = self.parse_value_indented(line_indent, indent)?;
+            // Parse the value - we've already skipped indentation and optionally the '-'
+            // The value could be a primitive, object, or array
+            // Check if this line looks like an object (has key: value format)
+            let line_start = self.pos;
+            let line_end = self.input[line_start..].find('\n')
+                .map(|i| line_start + i)
+                .unwrap_or(self.input.len());
+            let line = &self.input[line_start..line_end].trim();
+            
+            let value = if self.peek_char() == Some('[') {
+                self.parse_array_value()?
+            } else if line.contains(':') && !line.starts_with('"') && line.matches(':').count() == 1 && !line.trim_start().starts_with('-') {
+                // It's an object (single key:value on this line, like "a: 1")
+                // Parse as a simple key-value pair manually (don't use parse_object which expects indentation)
+                let key = self.parse_key()?;
+                self.skip_whitespace();
+                if self.peek_char() != Some(':') {
+                    return Err(Error::parse(self.pos, format!("Expected ':' after key '{}'", key)));
+                }
+                self.advance(); // consume ':'
+                self.skip_whitespace();
+                let val = self.parse_value()?;
+                let mut obj = Map::new();
+                obj.insert(key, val);
+                Value::Object(obj)
+            } else {
+                // Primitive value (number, string, boolean, etc.)
+                self.parse_value()?
+            };
             items.push(value);
-            self.skip_to_next_line();
+            // Skip to next line
+            if self.pos < self.input.len() && self.peek_char() == Some('\n') {
+                self.advance();
+            }
         }
 
         if self.options.get_strict() && items.len() != expected_length {
@@ -608,10 +692,16 @@ impl<'a> Parser<'a> {
     fn count_indent(&mut self, indent_size: usize) -> usize {
         let start = self.pos;
         let mut count = 0;
+        let indent_str = " ".repeat(indent_size);
         while self.pos < self.input.len() {
-            if self.input[self.pos..].starts_with(&" ".repeat(indent_size)) {
-                count += 1;
-                self.pos += indent_size;
+            if self.pos + indent_size <= self.input.len() {
+                let slice = &self.input[self.pos..self.pos + indent_size];
+                if slice == indent_str {
+                    count += 1;
+                    self.pos += indent_size;
+                } else {
+                    break;
+                }
             } else {
                 break;
             }
