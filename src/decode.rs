@@ -97,7 +97,7 @@ impl<'a> Parser<'a> {
                 if self.peek_char() != Some(':') {
                     return Err(Error::parse(
                         self.pos,
-                        format!("Expected ':' after key '{}'", key),
+                        format!("Expected ':' after key '{key}'"),
                     ));
                 }
                 self.advance(); // consume ':'
@@ -127,11 +127,10 @@ impl<'a> Parser<'a> {
                         self.parse_array_value()?
                     } else {
                         // Parse nested object
-                        let nested_obj = self.parse_object()?;
                         // After parsing nested object, check if we should continue
                         // The recursive parse_object() will have consumed all nested content
                         // and positioned us at the end or at a lower indentation level
-                        nested_obj
+                        self.parse_object()?
                     }
                 } else {
                     // Same or less indent means we're done with this value
@@ -355,13 +354,11 @@ impl<'a> Parser<'a> {
             let row = &self.input[start..self.pos];
             let values: Vec<&str> = self.split_row(row, delimiter);
 
-            if values.len() != fields.len() {
-                if self.options.get_strict() {
-                    return Err(Error::LengthMismatch {
-                        expected: fields.len(),
-                        found: values.len(),
-                    });
-                }
+            if values.len() != fields.len() && self.options.get_strict() {
+                return Err(Error::LengthMismatch {
+                    expected: fields.len(),
+                    found: values.len(),
+                });
             }
 
             for (i, field) in fields.iter().enumerate() {
@@ -476,7 +473,7 @@ impl<'a> Parser<'a> {
                 if self.peek_char() != Some(':') {
                     return Err(Error::parse(
                         self.pos,
-                        format!("Expected ':' after key '{}'", key),
+                        format!("Expected ':' after key '{key}'"),
                     ));
                 }
                 self.advance(); // consume ':'
@@ -588,7 +585,7 @@ impl<'a> Parser<'a> {
             } else if ch == '"' {
                 let s = &self.input[start..self.pos];
                 self.advance(); // consume closing quote
-                return self.parse_quoted_string(&format!("\"{}\"", s));
+                return self.parse_quoted_string(&format!("\"{s}\""));
             }
             self.advance();
         }
@@ -624,7 +621,7 @@ impl<'a> Parser<'a> {
                 .map_err(|_| Error::InvalidNumber(s.to_string()))?;
             serde_json::Number::from_f64(n)
                 .ok_or_else(|| Error::InvalidNumber(s.to_string()))
-                .map(|num| Value::Number(num))
+                .map(Value::Number)
         } else {
             s.parse::<i64>()
                 .map(|n| Value::Number(n.into()))
@@ -646,7 +643,7 @@ impl<'a> Parser<'a> {
                 self.pos = start;
                 Err(Error::parse(
                     self.pos,
-                    format!("Not a boolean or null: {}", s),
+                    format!("Not a boolean or null: {s}"),
                 ))
             }
         }

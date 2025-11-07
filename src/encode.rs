@@ -102,7 +102,7 @@ fn encode_array(
         // For root-level arrays, include the header
         let length_marker = options
             .length_marker
-            .map(|m| format!("{}", m))
+            .map(|m| format!("{m}"))
             .unwrap_or_default();
         output.push_str(&format!("[{}{}]", length_marker, arr.len()));
         output.push('{');
@@ -113,7 +113,7 @@ fn encode_array(
     }
 
     // Check if all elements are primitives (inline format)
-    if arr.iter().all(|v| is_primitive(v)) {
+    if arr.iter().all(is_primitive) {
         encode_inline_array(arr, output, options)?;
         return Ok(());
     }
@@ -181,7 +181,7 @@ fn encode_tabular_array_rows(
             }
             let value = obj
                 .get(key)
-                .ok_or_else(|| Error::Serialization(format!("Missing key: {}", key)))?;
+                .ok_or_else(|| Error::Serialization(format!("Missing key: {key}")))?;
             encode_primitive_value(value, output, delimiter)?;
             first = false;
         }
@@ -229,7 +229,7 @@ fn encode_inline_array(
 ) -> Result<(), Error> {
     let length_marker = options
         .length_marker
-        .map(|m| format!("{}", m))
+        .map(|m| format!("{m}"))
         .unwrap_or_default();
     output.push_str(&format!("[{}{}]:", length_marker, arr.len()));
 
@@ -333,7 +333,7 @@ fn encode_object(
                     // Tabular array - output on same line: key[N]{...}:
                     let length_marker = options
                         .length_marker
-                        .map(|m| format!("{}", m))
+                        .map(|m| format!("{m}"))
                         .unwrap_or_default();
                     output.push_str(&format!("[{}{}]", length_marker, arr.len()));
                     output.push('{');
@@ -341,11 +341,11 @@ fn encode_object(
                     output.push_str("}:\n");
                     // Now output the rows
                     encode_tabular_array_rows(arr, keys, output, indent_level, options)?;
-                } else if arr.iter().all(|v| is_primitive(v)) {
+                } else if arr.iter().all(is_primitive) {
                     // Inline array - output on same line: key[N]: value1,value2
                     let length_marker = options
                         .length_marker
-                        .map(|m| format!("{}", m))
+                        .map(|m| format!("{m}"))
                         .unwrap_or_default();
                     output.push_str(&format!("[{}{}]:", length_marker, arr.len()));
                     let delimiter = options.get_delimiter();
@@ -361,7 +361,7 @@ fn encode_object(
                     // List array - output on same line: key[N]:
                     let length_marker = options
                         .length_marker
-                        .map(|m| format!("{}", m))
+                        .map(|m| format!("{m}"))
                         .unwrap_or_default();
                     output.push_str(&format!("[{}{}]:", length_marker, arr.len()));
                     output.push('\n');

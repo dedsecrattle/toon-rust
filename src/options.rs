@@ -1,9 +1,10 @@
 //! Options for encoding and decoding TOON format
 
 /// Delimiter character for tabular arrays
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Delimiter {
     /// Comma delimiter (default)
+    #[default]
     Comma,
     /// Tab delimiter
     Tab,
@@ -19,12 +20,6 @@ impl Delimiter {
             Delimiter::Tab => '\t',
             Delimiter::Pipe => '|',
         }
-    }
-}
-
-impl Default for Delimiter {
-    fn default() -> Self {
-        Delimiter::Comma
     }
 }
 
