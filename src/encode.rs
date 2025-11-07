@@ -170,18 +170,18 @@ fn encode_tabular_array_rows(
     for item in arr {
         output.push_str(&indent_str);
         output.push_str(&" ".repeat(indent));
-        let obj = item.as_object().ok_or_else(|| {
-            Error::Serialization("Expected object in tabular array".to_string())
-        })?;
+        let obj = item
+            .as_object()
+            .ok_or_else(|| Error::Serialization("Expected object in tabular array".to_string()))?;
 
         let mut first = true;
         for key in &keys {
             if !first {
                 output.push(delimiter);
             }
-            let value = obj.get(key).ok_or_else(|| {
-                Error::Serialization(format!("Missing key: {}", key))
-            })?;
+            let value = obj
+                .get(key)
+                .ok_or_else(|| Error::Serialization(format!("Missing key: {}", key)))?;
             encode_primitive_value(value, output, delimiter)?;
             first = false;
         }
@@ -323,7 +323,7 @@ fn encode_object(
         }
         output.push_str(&indent_str);
         output.push_str(key);
-        
+
         match value {
             Value::Array(arr) => {
                 // For arrays, check the format and encode appropriately
@@ -383,4 +383,3 @@ fn encode_object(
 
     Ok(())
 }
-

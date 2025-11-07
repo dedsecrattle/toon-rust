@@ -58,5 +58,4 @@ pub use options::{DecodeOptions, EncodeOptions};
 pub mod serde_api;
 
 #[cfg(feature = "serde")]
-pub use serde_api::{from_str, from_reader, to_string, to_writer};
-
+pub use serde_api::{from_reader, from_str, to_string, to_writer};

@@ -111,4 +111,3 @@ impl DecodeOptions {
         self.strict.unwrap_or(true)
     }
 }
-

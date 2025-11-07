@@ -121,4 +121,3 @@ fn test_encode_boolean_string_vs_boolean() {
     assert!(result.contains("\"true\""));
     assert!(result.contains(",true"));
 }
-

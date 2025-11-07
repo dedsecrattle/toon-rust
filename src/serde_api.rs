@@ -33,8 +33,8 @@ use std::io::{Read, Write};
 /// let toon = to_string(&product).unwrap();
 /// ```
 pub fn to_string<T: Serialize>(value: &T) -> Result<String, Error> {
-    let json_value = serde_json::to_value(value)
-        .map_err(|e| Error::Serialization(e.to_string()))?;
+    let json_value =
+        serde_json::to_value(value).map_err(|e| Error::Serialization(e.to_string()))?;
     encode(&json_value, None)
 }
 
@@ -52,8 +52,8 @@ pub fn to_string_with_options<T: Serialize>(
     value: &T,
     options: &EncodeOptions,
 ) -> Result<String, Error> {
-    let json_value = serde_json::to_value(value)
-        .map_err(|e| Error::Serialization(e.to_string()))?;
+    let json_value =
+        serde_json::to_value(value).map_err(|e| Error::Serialization(e.to_string()))?;
     encode(&json_value, Some(options))
 }
 
@@ -142,8 +142,7 @@ pub fn from_str_with_options<T: DeserializeOwned>(
     options: Option<&DecodeOptions>,
 ) -> Result<T, Error> {
     let json_value = decode(s, options)?;
-    serde_json::from_value(json_value)
-        .map_err(|e| Error::Deserialization(e.to_string()))
+    serde_json::from_value(json_value).map_err(|e| Error::Deserialization(e.to_string()))
 }
 
 /// Deserialize a TOON-formatted reader to a value
@@ -183,4 +182,3 @@ pub fn from_reader_with_options<T: DeserializeOwned, R: Read>(
         .map_err(|e| Error::Io(e.to_string()))?;
     from_str_with_options(&s, Some(options))
 }
-

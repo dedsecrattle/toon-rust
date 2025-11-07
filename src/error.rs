@@ -7,10 +7,7 @@ use thiserror::Error;
 pub enum Error {
     /// Parse error with position information
     #[error("Parse error at position {position}: {message}")]
-    Parse {
-        position: usize,
-        message: String,
-    },
+    Parse { position: usize, message: String },
 
     /// Syntax error
     #[error("Syntax error: {0}")]
@@ -71,4 +68,3 @@ impl Error {
         Self::Syntax(message.into())
     }
 }
-

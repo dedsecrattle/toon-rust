@@ -25,4 +25,3 @@ fn main() {
     let decoded = decode(&toon, None).unwrap();
     println!("Decoded: {}", decoded);
 }
-

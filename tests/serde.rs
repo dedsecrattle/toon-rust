@@ -52,4 +52,3 @@ mod serde_tests {
         assert_eq!(user, decoded);
     }
 }
-

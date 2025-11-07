@@ -68,4 +68,3 @@ fn test_roundtrip_mixed_types() {
     let decoded = decode(&toon, None).unwrap();
     assert_eq!(original, decoded);
 }
-

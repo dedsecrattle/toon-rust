@@ -46,4 +46,3 @@ fn main() {
     println!("Decoded: {:?}", decoded);
     assert_eq!(user, decoded);
 }
-

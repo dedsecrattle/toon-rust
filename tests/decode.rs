@@ -87,4 +87,3 @@ fn test_decode_with_length_marker() {
     let tags = result["tags"].as_array().unwrap();
     assert_eq!(tags.len(), 3);
 }
-

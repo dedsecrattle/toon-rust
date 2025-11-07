@@ -1,8 +1,8 @@
 //! Advanced options usage example
 
 use serde_json::json;
-use toon_rust::{decode, encode, DecodeOptions, EncodeOptions};
 use toon_rust::options::Delimiter;
+use toon_rust::{decode, encode, DecodeOptions, EncodeOptions};
 
 fn main() {
     let data = json!({
@@ -37,4 +37,3 @@ fn main() {
     let decoded = decode(&toon_indent, Some(&decode_options)).unwrap();
     println!("Decoded: {}", decoded);
 }
-

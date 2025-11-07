@@ -62,7 +62,7 @@ impl<'a> Parser<'a> {
                 // We've gone back to a lower indentation level
                 break;
             }
-            
+
             // Now skip the indentation whitespace
             for _ in 0..(line_indent * indent) {
                 if self.peek_char() == Some(' ') {
@@ -71,7 +71,7 @@ impl<'a> Parser<'a> {
                     break;
                 }
             }
-            
+
             if self.pos >= self.input.len() {
                 break;
             }
@@ -91,7 +91,7 @@ impl<'a> Parser<'a> {
 
             // Check if we have array notation in the key (e.g., "tags[3]:")
             let has_array_notation = self.peek_char() == Some('[');
-            
+
             if !has_array_notation {
                 // Normal key-value: key: value
                 if self.peek_char() != Some(':') {
@@ -119,7 +119,7 @@ impl<'a> Parser<'a> {
                 value
             } else if self.peek_char() == Some('\n') {
                 self.advance(); // consume '\n'
-                // Check if next line is more indented (nested object/array)
+                                // Check if next line is more indented (nested object/array)
                 let next_indent = self.count_indent(indent);
                 if next_indent > line_indent {
                     // Parse nested object or array
@@ -150,13 +150,13 @@ impl<'a> Parser<'a> {
             };
 
             map.insert(key, value);
-            
+
             // After inserting a nested object, check if we should continue
             // If we're at the end or at a lower indentation level, break
             if self.pos >= self.input.len() {
                 break;
             }
-            
+
             // Check indentation for next iteration
             let next_line_indent = self.count_indent(indent);
             if next_line_indent < initial_indent {
@@ -221,7 +221,7 @@ impl<'a> Parser<'a> {
 
     fn parse_value_until_newline(&mut self) -> Result<Value, Error> {
         self.skip_whitespace();
-        
+
         // Check what type of value we have
         match self.peek_char() {
             Some('[') => {
@@ -244,7 +244,6 @@ impl<'a> Parser<'a> {
             _ => self.parse_unquoted_string(),
         }
     }
-
 
     fn parse_array_value(&mut self) -> Result<Value, Error> {
         if self.peek_char() != Some('[') {
@@ -289,7 +288,10 @@ impl<'a> Parser<'a> {
                 self.parse_inline_array(length)
             }
         } else {
-            Err(Error::parse(self.pos, "Expected ':' or '{' after array length"))
+            Err(Error::parse(
+                self.pos,
+                "Expected ':' or '{' after array length",
+            ))
         }
     }
 
@@ -313,7 +315,7 @@ impl<'a> Parser<'a> {
             return Err(Error::parse(self.pos, "Expected ':'"));
         }
         self.advance(); // consume ':'
-        // Skip to next line (consume newline if present)
+                        // Skip to next line (consume newline if present)
         if self.peek_char() == Some('\n') {
             self.advance();
         }
@@ -328,13 +330,13 @@ impl<'a> Parser<'a> {
             if self.pos >= self.input.len() {
                 break;
             }
-            
+
             // Count indentation of current line
             let line_indent = self.count_indent(indent);
             if line_indent < base_indent {
                 break; // Back at lower indentation level
             }
-            
+
             // Skip the indentation whitespace
             for _ in 0..(line_indent * indent) {
                 if self.peek_char() == Some(' ') {
@@ -427,13 +429,13 @@ impl<'a> Parser<'a> {
             if self.pos >= self.input.len() {
                 break;
             }
-            
+
             // Count indentation of current line
             let line_indent = self.count_indent(indent);
             if line_indent < base_indent {
                 break; // Back at lower indentation level
             }
-            
+
             // Skip the indentation whitespace
             for _ in 0..(line_indent * indent) {
                 if self.peek_char() == Some(' ') {
@@ -454,20 +456,28 @@ impl<'a> Parser<'a> {
             // The value could be a primitive, object, or array
             // Check if this line looks like an object (has key: value format)
             let line_start = self.pos;
-            let line_end = self.input[line_start..].find('\n')
+            let line_end = self.input[line_start..]
+                .find('\n')
                 .map(|i| line_start + i)
                 .unwrap_or(self.input.len());
             let line = &self.input[line_start..line_end].trim();
-            
+
             let value = if self.peek_char() == Some('[') {
                 self.parse_array_value()?
-            } else if line.contains(':') && !line.starts_with('"') && line.matches(':').count() == 1 && !line.trim_start().starts_with('-') {
+            } else if line.contains(':')
+                && !line.starts_with('"')
+                && line.matches(':').count() == 1
+                && !line.trim_start().starts_with('-')
+            {
                 // It's an object (single key:value on this line, like "a: 1")
                 // Parse as a simple key-value pair manually (don't use parse_object which expects indentation)
                 let key = self.parse_key()?;
                 self.skip_whitespace();
                 if self.peek_char() != Some(':') {
-                    return Err(Error::parse(self.pos, format!("Expected ':' after key '{}'", key)));
+                    return Err(Error::parse(
+                        self.pos,
+                        format!("Expected ':' after key '{}'", key),
+                    ));
                 }
                 self.advance(); // consume ':'
                 self.skip_whitespace();
@@ -609,7 +619,8 @@ impl<'a> Parser<'a> {
 
         let s = &self.input[start..self.pos];
         if has_dot {
-            let n = s.parse::<f64>()
+            let n = s
+                .parse::<f64>()
                 .map_err(|_| Error::InvalidNumber(s.to_string()))?;
             serde_json::Number::from_f64(n)
                 .ok_or_else(|| Error::InvalidNumber(s.to_string()))
@@ -633,7 +644,10 @@ impl<'a> Parser<'a> {
             _ => {
                 // Not a boolean/null, reset position
                 self.pos = start;
-                Err(Error::parse(self.pos, format!("Not a boolean or null: {}", s)))
+                Err(Error::parse(
+                    self.pos,
+                    format!("Not a boolean or null: {}", s),
+                ))
             }
         }
     }
@@ -644,7 +658,9 @@ impl<'a> Parser<'a> {
         // Parse key - stop at ':', '[', space, newline, or tab
         while self.pos < self.input.len() {
             match self.peek_char() {
-                Some(ch) if ch == ':' || ch == '[' || ch == ' ' || ch == '\n' || ch == '\t' => break,
+                Some(ch) if ch == ':' || ch == '[' || ch == ' ' || ch == '\n' || ch == '\t' => {
+                    break
+                }
                 Some(_) => self.advance(),
                 None => break,
             }
@@ -759,4 +775,3 @@ impl<'a> Parser<'a> {
         }
     }
 }
-
