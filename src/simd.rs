@@ -221,7 +221,7 @@ pub fn detect_delimiter_simd(input: &str) -> char {
 }
 
 /// Public wrapper for SIMD row splitting with fallback
-pub fn split_row_simd<'a>(row: &'a str, delimiter: char) -> Vec<&'a str> {
+pub fn split_row_simd(row: &str, delimiter: char) -> Vec<&str> {
     #[cfg(target_arch = "x86_64")]
     {
         if is_x86_feature_detected!("sse2") && row.len() >= 16 {
@@ -249,7 +249,7 @@ pub fn detect_delimiter_fallback(input: &str) -> char {
 }
 
 /// Fallback implementation for row splitting
-pub fn split_row_fallback<'a>(row: &'a str, delimiter: char) -> Vec<&'a str> {
+pub fn split_row_fallback(row: &str, delimiter: char) -> Vec<&str> {
     let mut result = Vec::new();
     let mut start = 0;
     let mut in_quotes = false;

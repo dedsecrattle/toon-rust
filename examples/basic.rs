@@ -18,10 +18,10 @@ fn main() {
     // Encode to TOON
     println!("Encoding to TOON format:\n");
     let toon = encode(&data, None).unwrap();
-    println!("{}", toon);
+    println!("{toon}");
 
     // Decode from TOON
     println!("\nDecoding from TOON format:\n");
     let decoded = decode(&toon, None).unwrap();
-    println!("Decoded: {}", decoded);
+    println!("Decoded: {decoded}");
 }
