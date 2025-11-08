@@ -82,10 +82,8 @@ unsafe fn detect_delimiter_simd_x86_64(input: &str) -> char {
         '\t'
     } else if found_pipe {
         '|'
-    } else if found_comma {
-        ','
     } else {
-        ',' // default
+        ',' // default (comma or none found)
     }
 }
 
@@ -104,7 +102,7 @@ unsafe fn detect_delimiter_simd_x86_64(input: &str) -> char {
 /// A vector of string slices representing the split fields
 #[cfg(target_arch = "x86_64")]
 #[target_feature(enable = "sse2")]
-unsafe fn split_row_simd_x86_64<'a>(row: &'a str, delimiter: char) -> Vec<&'a str> {
+unsafe fn split_row_simd_x86_64(row: &str, delimiter: char) -> Vec<&str> {
     let bytes = row.as_bytes();
     if bytes.is_empty() {
         return vec![row];
@@ -147,7 +145,6 @@ unsafe fn split_row_simd_x86_64<'a>(row: &'a str, delimiter: char) -> Vec<&'a st
             if pos >= bytes.len() {
                 break;
             }
-            let byte = bytes[pos];
             let is_backslash = (backslash_bits >> i) & 1 != 0;
             let is_quote = (quote_bits >> i) & 1 != 0;
             let is_delimiter = (delim_bits >> i) & 1 != 0;
