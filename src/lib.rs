@@ -48,6 +48,7 @@ pub mod decode;
 pub mod encode;
 pub mod error;
 pub mod options;
+mod simd;
 
 pub use decode::decode;
 pub use encode::encode;
