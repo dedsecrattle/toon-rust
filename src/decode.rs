@@ -672,7 +672,7 @@ impl<'a> Parser<'a> {
     fn detect_delimiter(&self) -> char {
         // Look ahead to detect delimiter
         let remaining = &self.input[self.pos..];
-        
+
         // Use SIMD for larger inputs, fallback for small ones
         // Threshold: use SIMD if input is large enough to benefit (>= 32 bytes)
         if remaining.len() >= 32 {
