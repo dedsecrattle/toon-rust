@@ -1,6 +1,6 @@
 [package]
 name = "toon-rust"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Prabhat Kumar <itsprabxxx@gmail.com>"]
 description = "Token-Oriented Object Notation (TOON) - JSON for LLM prompts at half the tokens. Rust implementation."
