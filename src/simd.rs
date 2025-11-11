@@ -26,11 +26,9 @@ unsafe fn detect_delimiter_simd_x86_64(input: &str) -> char {
     // Create SIMD vectors for each delimiter (16 bytes for SSE2)
     let tab_vec = _mm_set1_epi8(b'\t' as i8);
     let pipe_vec = _mm_set1_epi8(b'|' as i8);
-    let comma_vec = _mm_set1_epi8(b',' as i8);
 
     let mut found_tab = false;
     let mut found_pipe = false;
-    let mut found_comma = false;
 
     // Process in chunks of 16 bytes (SSE2 register size)
     let chunks = bytes.chunks_exact(16);
@@ -43,21 +41,16 @@ unsafe fn detect_delimiter_simd_x86_64(input: &str) -> char {
         // Compare with each delimiter
         let tab_mask = _mm_cmpeq_epi8(chunk_vec, tab_vec);
         let pipe_mask = _mm_cmpeq_epi8(chunk_vec, pipe_vec);
-        let comma_mask = _mm_cmpeq_epi8(chunk_vec, comma_vec);
 
         // Check if any byte matches (movemask gives us a bitmask)
         let tab_bits = _mm_movemask_epi8(tab_mask);
         let pipe_bits = _mm_movemask_epi8(pipe_mask);
-        let comma_bits = _mm_movemask_epi8(comma_mask);
 
         if tab_bits != 0 {
             found_tab = true;
         }
         if pipe_bits != 0 {
             found_pipe = true;
-        }
-        if comma_bits != 0 {
-            found_comma = true;
         }
 
         // Early exit if we found tab (highest priority)
@@ -72,8 +65,6 @@ unsafe fn detect_delimiter_simd_x86_64(input: &str) -> char {
             return '\t';
         } else if byte == b'|' {
             found_pipe = true;
-        } else if byte == b',' {
-            found_comma = true;
         }
     }
 
