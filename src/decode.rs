@@ -2,6 +2,7 @@
 
 use crate::error::Error;
 use crate::options::DecodeOptions;
+use crate::simd;
 use serde_json::{Map, Value};
 
 /// Decode a TOON-formatted string to a JSON value
@@ -671,35 +672,24 @@ impl<'a> Parser<'a> {
     fn detect_delimiter(&self) -> char {
         // Look ahead to detect delimiter
         let remaining = &self.input[self.pos..];
-        if remaining.contains('\t') {
-            '\t'
-        } else if remaining.contains('|') {
-            '|'
+
+        // Use SIMD for larger inputs, fallback for small ones
+        // Threshold: use SIMD if input is large enough to benefit (>= 32 bytes)
+        if remaining.len() >= 32 {
+            simd::detect_delimiter_simd(remaining)
         } else {
-            ','
+            simd::detect_delimiter_fallback(remaining)
         }
     }
 
     fn split_row<'b>(&self, row: &'b str, delimiter: char) -> Vec<&'b str> {
-        let mut result = Vec::new();
-        let mut start = 0;
-        let mut in_quotes = false;
-        let chars: Vec<char> = row.chars().collect();
-
-        for (i, ch) in chars.iter().enumerate() {
-            match ch {
-                '"' if i == 0 || chars[i - 1] != '\\' => {
-                    in_quotes = !in_quotes;
-                }
-                _ if *ch == delimiter && !in_quotes => {
-                    result.push(&row[start..i]);
-                    start = i + 1;
-                }
-                _ => {}
-            }
+        // Use SIMD for larger inputs, fallback for small ones
+        // Threshold: use SIMD if row is large enough to benefit (>= 32 bytes)
+        if row.len() >= 32 {
+            simd::split_row_simd(row, delimiter)
+        } else {
+            simd::split_row_fallback(row, delimiter)
         }
-        result.push(&row[start..]);
-        result
     }
 
     fn count_indent(&mut self, indent_size: usize) -> usize {

@@ -38,11 +38,11 @@ fn main() {
     // Serialize to TOON
     println!("Serializing to TOON:\n");
     let toon = to_string(&user).unwrap();
-    println!("{}", toon);
+    println!("{toon}");
 
     // Deserialize from TOON
     println!("\nDeserializing from TOON:\n");
     let decoded: User = from_str(&toon).unwrap();
-    println!("Decoded: {:?}", decoded);
+    println!("Decoded: {decoded:?}");
     assert_eq!(user, decoded);
 }

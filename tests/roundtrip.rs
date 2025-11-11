@@ -58,7 +58,7 @@ fn test_roundtrip_mixed_types() {
     let original = json!({
         "string": "hello",
         "number": 42,
-        "float": 3.14,
+        "float": std::f64::consts::PI,
         "boolean": true,
         "null": null,
         "array": [1, 2, 3],
