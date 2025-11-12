@@ -22,6 +22,27 @@
 //! let decoded = decode(&toon, None).unwrap();
 //! ```
 //!
+//! ## Streaming API
+//!
+//! For large datasets, use the streaming API to avoid loading everything into memory:
+//!
+//! ```rust,no_run
+//! use std::fs::File;
+//! use std::io::BufWriter;
+//! use serde_json::json;
+//! use toon_rust::{encode_stream, decode_stream};
+//!
+//! // Encode to file
+//! let data = json!({"name": "Alice", "age": 30});
+//! let file = File::create("output.toon").unwrap();
+//! let mut writer = BufWriter::new(file);
+//! encode_stream(&data, &mut writer, None).unwrap();
+//!
+//! // Decode from file
+//! let file = File::open("output.toon").unwrap();
+//! let decoded = decode_stream(file, None).unwrap();
+//! ```
+//!
 //! ## Serde API (requires `serde` feature)
 //!
 //! ```rust,no_run
@@ -50,8 +71,8 @@ pub mod error;
 pub mod options;
 mod simd;
 
-pub use decode::decode;
-pub use encode::encode;
+pub use decode::{decode, decode_stream};
+pub use encode::{encode, encode_stream};
 pub use error::Error;
 pub use options::{DecodeOptions, EncodeOptions};
 
