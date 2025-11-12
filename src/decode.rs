@@ -787,10 +787,7 @@ impl<'a> Parser<'a> {
 /// let file = File::open("input.toon").unwrap();
 /// let value = decode_stream(file, None).unwrap();
 /// ```
-pub fn decode_stream<R: Read>(
-    reader: R,
-    options: Option<&DecodeOptions>,
-) -> Result<Value, Error> {
+pub fn decode_stream<R: Read>(reader: R, options: Option<&DecodeOptions>) -> Result<Value, Error> {
     let default_opts = DecodeOptions::default();
     let opts = options.unwrap_or(&default_opts);
     let mut buf_reader = BufReader::with_capacity(8192, reader);
@@ -947,7 +944,7 @@ impl<'a, R: Read> StreamingParser<'a, R> {
                 value
             } else if self.peek_char() == Some('\n') {
                 self.advance(); // consume '\n'
-                // Check if next line is more indented (nested object/array)
+                                // Check if next line is more indented (nested object/array)
                 let next_indent = self.count_indent(indent)?;
                 if next_indent > line_indent {
                     // Parse nested object or array
@@ -1109,7 +1106,8 @@ impl<'a, R: Read> StreamingParser<'a, R> {
                     self.advance();
                 }
                 Ok(Value::Array(Vec::new()))
-            } else if self.peek_char() == Some('\n') || (self.pos >= self.buffer.len() && self.eof) {
+            } else if self.peek_char() == Some('\n') || (self.pos >= self.buffer.len() && self.eof)
+            {
                 self.parse_list_array(length)
             } else {
                 self.parse_inline_array(length)
@@ -1142,7 +1140,7 @@ impl<'a, R: Read> StreamingParser<'a, R> {
             return Err(Error::parse(self.pos, "Expected ':'"));
         }
         self.advance(); // consume ':'
-        // Skip to next line (consume newline if present)
+                        // Skip to next line (consume newline if present)
         if self.peek_char() == Some('\n') {
             self.advance();
         }
@@ -1156,7 +1154,7 @@ impl<'a, R: Read> StreamingParser<'a, R> {
         for _ in 0..expected_length {
             // Ensure we have enough buffer to read a line
             self.ensure_buffer(100)?;
-            
+
             if self.pos >= self.buffer.len() && self.eof {
                 break;
             }

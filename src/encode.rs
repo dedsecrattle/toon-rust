@@ -437,15 +437,21 @@ fn encode_value_to_writer<W: Write>(
         }
         Value::Bool(b) => {
             let s = if *b { "true" } else { "false" };
-            writer.write_all(s.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+            writer
+                .write_all(s.as_bytes())
+                .map_err(|e| Error::Io(e.to_string()))?;
         }
         Value::Number(n) => {
             if let Some(i) = n.as_i64() {
                 let s = i.to_string();
-                writer.write_all(s.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+                writer
+                    .write_all(s.as_bytes())
+                    .map_err(|e| Error::Io(e.to_string()))?;
             } else if let Some(f) = n.as_f64() {
                 let s = f.to_string();
-                writer.write_all(s.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+                writer
+                    .write_all(s.as_bytes())
+                    .map_err(|e| Error::Io(e.to_string()))?;
             } else {
                 return Err(Error::Serialization("Invalid number".to_string()));
             }
@@ -479,24 +485,42 @@ fn encode_string_to_writer<W: Write>(
         || s.parse::<f64>().is_ok();
 
     if needs_quoting {
-        writer.write_all(b"\"").map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(b"\"")
+            .map_err(|e| Error::Io(e.to_string()))?;
         for ch in s.chars() {
             match ch {
-                '"' => writer.write_all(b"\\\"").map_err(|e| Error::Io(e.to_string()))?,
-                '\\' => writer.write_all(b"\\\\").map_err(|e| Error::Io(e.to_string()))?,
-                '\n' => writer.write_all(b"\\n").map_err(|e| Error::Io(e.to_string()))?,
-                '\r' => writer.write_all(b"\\r").map_err(|e| Error::Io(e.to_string()))?,
-                '\t' => writer.write_all(b"\\t").map_err(|e| Error::Io(e.to_string()))?,
+                '"' => writer
+                    .write_all(b"\\\"")
+                    .map_err(|e| Error::Io(e.to_string()))?,
+                '\\' => writer
+                    .write_all(b"\\\\")
+                    .map_err(|e| Error::Io(e.to_string()))?,
+                '\n' => writer
+                    .write_all(b"\\n")
+                    .map_err(|e| Error::Io(e.to_string()))?,
+                '\r' => writer
+                    .write_all(b"\\r")
+                    .map_err(|e| Error::Io(e.to_string()))?,
+                '\t' => writer
+                    .write_all(b"\\t")
+                    .map_err(|e| Error::Io(e.to_string()))?,
                 _ => {
                     let mut buf = [0; 4];
                     let bytes = ch.encode_utf8(&mut buf).as_bytes();
-                    writer.write_all(bytes).map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(bytes)
+                        .map_err(|e| Error::Io(e.to_string()))?;
                 }
             }
         }
-        writer.write_all(b"\"").map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(b"\"")
+            .map_err(|e| Error::Io(e.to_string()))?;
     } else {
-        writer.write_all(s.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(s.as_bytes())
+            .map_err(|e| Error::Io(e.to_string()))?;
     }
     Ok(())
 }
@@ -508,7 +532,9 @@ fn encode_array_to_writer<W: Write>(
     options: &EncodeOptions,
 ) -> Result<(), Error> {
     if arr.is_empty() {
-        writer.write_all(b"[0]:").map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(b"[0]:")
+            .map_err(|e| Error::Io(e.to_string()))?;
         return Ok(());
     }
 
@@ -520,11 +546,19 @@ fn encode_array_to_writer<W: Write>(
             .map(|m| format!("{m}"))
             .unwrap_or_default();
         let header = format!("[{}{}]", length_marker, arr.len());
-        writer.write_all(header.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-        writer.write_all(b"{").map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(header.as_bytes())
+            .map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(b"{")
+            .map_err(|e| Error::Io(e.to_string()))?;
         let keys_str = keys.join(&options.get_delimiter().to_string());
-        writer.write_all(keys_str.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-        writer.write_all(b"}:\n").map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(keys_str.as_bytes())
+            .map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(b"}:\n")
+            .map_err(|e| Error::Io(e.to_string()))?;
         encode_tabular_array_rows_to_writer(arr, keys, writer, indent_level, options)?;
         return Ok(());
     }
@@ -553,8 +587,12 @@ fn encode_tabular_array_rows_to_writer<W: Write>(
 
     // Write rows (header already written by caller)
     for item in arr {
-        writer.write_all(indent_str.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-        writer.write_all(" ".repeat(indent).as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(indent_str.as_bytes())
+            .map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(" ".repeat(indent).as_bytes())
+            .map_err(|e| Error::Io(e.to_string()))?;
         let obj = item
             .as_object()
             .ok_or_else(|| Error::Serialization("Expected object in tabular array".to_string()))?;
@@ -563,7 +601,9 @@ fn encode_tabular_array_rows_to_writer<W: Write>(
         for key in &keys {
             if !first {
                 let delim_bytes = [delimiter as u8];
-                writer.write_all(&delim_bytes).map_err(|e| Error::Io(e.to_string()))?;
+                writer
+                    .write_all(&delim_bytes)
+                    .map_err(|e| Error::Io(e.to_string()))?;
             }
             let value = obj
                 .get(key)
@@ -571,7 +611,9 @@ fn encode_tabular_array_rows_to_writer<W: Write>(
             encode_primitive_value_to_writer(value, writer, delimiter)?;
             first = false;
         }
-        writer.write_all(b"\n").map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(b"\n")
+            .map_err(|e| Error::Io(e.to_string()))?;
     }
 
     Ok(())
@@ -586,15 +628,21 @@ fn encode_primitive_value_to_writer<W: Write>(
         Value::Null => {}
         Value::Bool(b) => {
             let s = if *b { "true" } else { "false" };
-            writer.write_all(s.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+            writer
+                .write_all(s.as_bytes())
+                .map_err(|e| Error::Io(e.to_string()))?;
         }
         Value::Number(n) => {
             if let Some(i) = n.as_i64() {
                 let s = i.to_string();
-                writer.write_all(s.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+                writer
+                    .write_all(s.as_bytes())
+                    .map_err(|e| Error::Io(e.to_string()))?;
             } else if let Some(f) = n.as_f64() {
                 let s = f.to_string();
-                writer.write_all(s.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+                writer
+                    .write_all(s.as_bytes())
+                    .map_err(|e| Error::Io(e.to_string()))?;
             } else {
                 return Err(Error::Serialization("Invalid number".to_string()));
             }
@@ -621,28 +669,38 @@ fn encode_inline_array_to_writer<W: Write>(
         .map(|m| format!("{m}"))
         .unwrap_or_default();
     let header = format!("[{}{}]:", length_marker, arr.len());
-    writer.write_all(header.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+    writer
+        .write_all(header.as_bytes())
+        .map_err(|e| Error::Io(e.to_string()))?;
 
     let delimiter = options.get_delimiter();
     let mut first = true;
     for item in arr {
         if !first {
             let delim_bytes = [delimiter as u8];
-            writer.write_all(&delim_bytes).map_err(|e| Error::Io(e.to_string()))?;
+            writer
+                .write_all(&delim_bytes)
+                .map_err(|e| Error::Io(e.to_string()))?;
         }
         match item {
             Value::Null => {}
             Value::Bool(b) => {
                 let s = if *b { "true" } else { "false" };
-                writer.write_all(s.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+                writer
+                    .write_all(s.as_bytes())
+                    .map_err(|e| Error::Io(e.to_string()))?;
             }
             Value::Number(n) => {
                 if let Some(i) = n.as_i64() {
                     let s = i.to_string();
-                    writer.write_all(s.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(s.as_bytes())
+                        .map_err(|e| Error::Io(e.to_string()))?;
                 } else if let Some(f) = n.as_f64() {
                     let s = f.to_string();
-                    writer.write_all(s.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(s.as_bytes())
+                        .map_err(|e| Error::Io(e.to_string()))?;
                 }
             }
             Value::String(s) => {
@@ -670,19 +728,31 @@ fn encode_list_array_to_writer<W: Write>(
     let indent_str = " ".repeat(indent_level * indent);
 
     for item in arr {
-        writer.write_all(indent_str.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-        writer.write_all(" ".repeat(indent).as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-        writer.write_all(b"- ").map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(indent_str.as_bytes())
+            .map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(" ".repeat(indent).as_bytes())
+            .map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(b"- ")
+            .map_err(|e| Error::Io(e.to_string()))?;
         // For objects in list arrays, encode them inline as key: value
         match item {
             Value::Object(obj) => {
                 let mut first = true;
                 for (key, val) in obj {
                     if !first {
-                        writer.write_all(b" ").map_err(|e| Error::Io(e.to_string()))?;
+                        writer
+                            .write_all(b" ")
+                            .map_err(|e| Error::Io(e.to_string()))?;
                     }
-                    writer.write_all(key.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-                    writer.write_all(b": ").map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(key.as_bytes())
+                        .map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(b": ")
+                        .map_err(|e| Error::Io(e.to_string()))?;
                     encode_primitive_value_to_writer(val, writer, options.get_delimiter())?;
                     first = false;
                 }
@@ -691,7 +761,9 @@ fn encode_list_array_to_writer<W: Write>(
                 encode_value_to_writer(item, writer, indent_level + 1, options)?;
             }
         }
-        writer.write_all(b"\n").map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(b"\n")
+            .map_err(|e| Error::Io(e.to_string()))?;
     }
 
     Ok(())
@@ -713,16 +785,24 @@ fn encode_object_to_writer<W: Write>(
     let mut first = true;
     for (key, value) in obj {
         if !first {
-            writer.write_all(b"\n").map_err(|e| Error::Io(e.to_string()))?;
+            writer
+                .write_all(b"\n")
+                .map_err(|e| Error::Io(e.to_string()))?;
         }
-        writer.write_all(indent_str.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-        writer.write_all(key.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(indent_str.as_bytes())
+            .map_err(|e| Error::Io(e.to_string()))?;
+        writer
+            .write_all(key.as_bytes())
+            .map_err(|e| Error::Io(e.to_string()))?;
 
         match value {
             Value::Array(arr) => {
                 // For arrays, check the format and encode appropriately
                 if arr.is_empty() {
-                    writer.write_all(b"[0]:").map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(b"[0]:")
+                        .map_err(|e| Error::Io(e.to_string()))?;
                 } else if let Some(keys) = check_uniform_objects(arr) {
                     // Tabular array - output on same line: key[N]{...}:
                     let length_marker = options
@@ -730,11 +810,19 @@ fn encode_object_to_writer<W: Write>(
                         .map(|m| format!("{m}"))
                         .unwrap_or_default();
                     let header = format!("[{}{}]", length_marker, arr.len());
-                    writer.write_all(header.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-                    writer.write_all(b"{").map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(header.as_bytes())
+                        .map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(b"{")
+                        .map_err(|e| Error::Io(e.to_string()))?;
                     let keys_str = keys.join(&options.get_delimiter().to_string());
-                    writer.write_all(keys_str.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-                    writer.write_all(b"}:\n").map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(keys_str.as_bytes())
+                        .map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(b"}:\n")
+                        .map_err(|e| Error::Io(e.to_string()))?;
                     // Now output the rows
                     encode_tabular_array_rows_to_writer(arr, keys, writer, indent_level, options)?;
                 } else if arr.iter().all(is_primitive) {
@@ -744,13 +832,17 @@ fn encode_object_to_writer<W: Write>(
                         .map(|m| format!("{m}"))
                         .unwrap_or_default();
                     let header = format!("[{}{}]:", length_marker, arr.len());
-                    writer.write_all(header.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(header.as_bytes())
+                        .map_err(|e| Error::Io(e.to_string()))?;
                     let delimiter = options.get_delimiter();
                     let mut first = true;
                     for item in arr {
                         if !first {
                             let delim_bytes = [delimiter as u8];
-                            writer.write_all(&delim_bytes).map_err(|e| Error::Io(e.to_string()))?;
+                            writer
+                                .write_all(&delim_bytes)
+                                .map_err(|e| Error::Io(e.to_string()))?;
                         }
                         encode_primitive_value_to_writer(item, writer, delimiter)?;
                         first = false;
@@ -762,18 +854,28 @@ fn encode_object_to_writer<W: Write>(
                         .map(|m| format!("{m}"))
                         .unwrap_or_default();
                     let header = format!("[{}{}]:", length_marker, arr.len());
-                    writer.write_all(header.as_bytes()).map_err(|e| Error::Io(e.to_string()))?;
-                    writer.write_all(b"\n").map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(header.as_bytes())
+                        .map_err(|e| Error::Io(e.to_string()))?;
+                    writer
+                        .write_all(b"\n")
+                        .map_err(|e| Error::Io(e.to_string()))?;
                     encode_list_array_to_writer(arr, writer, indent_level, options)?;
                 }
             }
             Value::Object(_) => {
-                writer.write_all(b": ").map_err(|e| Error::Io(e.to_string()))?;
-                writer.write_all(b"\n").map_err(|e| Error::Io(e.to_string()))?;
+                writer
+                    .write_all(b": ")
+                    .map_err(|e| Error::Io(e.to_string()))?;
+                writer
+                    .write_all(b"\n")
+                    .map_err(|e| Error::Io(e.to_string()))?;
                 encode_value_to_writer(value, writer, indent_level + 1, options)?;
             }
             _ => {
-                writer.write_all(b": ").map_err(|e| Error::Io(e.to_string()))?;
+                writer
+                    .write_all(b": ")
+                    .map_err(|e| Error::Io(e.to_string()))?;
                 encode_value_to_writer(value, writer, indent_level, options)?;
             }
         }

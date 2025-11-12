@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     println!("Encoding large dataset to file using streaming...");
-    
+
     // Encode using streaming API - writes directly to file without building string in memory
     let file = File::create("example_output.toon")?;
     let mut writer = BufWriter::new(file);
@@ -39,14 +39,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✓ Encoded to example_output.toon");
 
     println!("\nDecoding from file using streaming...");
-    
+
     // Decode using streaming API - reads incrementally without loading entire file
     let file = File::open("example_output.toon")?;
     let decoded = decode_stream(file, None)?;
 
     println!("✓ Decoded successfully");
     println!("\nDecoded data summary:");
-    println!("  Products: {}", decoded["products"].as_array().unwrap().len());
+    println!(
+        "  Products: {}",
+        decoded["products"].as_array().unwrap().len()
+    );
     println!("  Metadata total: {}", decoded["metadata"]["total"]);
 
     // Clean up
@@ -55,4 +58,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
