@@ -6,6 +6,7 @@
 [![docs.rs](https://docs.rs/toon-rust/badge.svg)](https://docs.rs/toon-rust)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org)
+[![Downloads](https://img.shields.io/crates/d/toon-rust.svg)](https://crates.io/crates/toon-rust)
 
 Token-Oriented Object Notation (TOON) - Rust implementation
 
